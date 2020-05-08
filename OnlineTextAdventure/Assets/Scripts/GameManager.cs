@@ -2,137 +2,79 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Extensions.Generics.Singleton;
-using TMPro;
-using Extensions;
+using Game.Inventory;
 using System;
 
 public class GameManager : GenericSingleton<GameManager, GameManager>
 {
-    public List<Character> players = new List<Character>();
-    public List<Character> enemies = new List<Character>();
-    public List<RectTransform> loseChars = new List<RectTransform>();
+    public int amountOfPlayers = 1;
+    public Character playerPrefab;
+    public Vector3[] playerSpawnPositions;
+    public List<Character> players;
 
-    [SerializeField] private TextMeshProUGUI charPrefab;
-    [SerializeField] private TextMeshProUGUI commandPrefix;
+    public Character enemyPrefab;
+    public Vector3[] enemySpawnPositions;
+    public List<Character> enemies;
 
-    private delegate void StringCommand(string text);
-    private Dictionary<string, StringCommand> commands;
+    public HealthBar healthBarPrefab;
 
-    protected override void Awake()
+    public RectTransform canvas;
+    public Inventory inventory;
+
+
+    public string[] GetEnemyNames()
     {
-        InitializeCommands();
-    }
-
-    public void DecypherCommand(string text)
-    {
-        string[] words = text.Split(' ');
-        Debug.Log($"First string: {words[0]}, Second string: {words[1]}");
-
-        string command = words[0];
-        string item = words[1];
-
-        commands[command](item);
-    }
-
-    public void UseCommand(string text)
-    {
-        commandPrefix.text = "Used a ";
-    }
-
-    public void AttackCommand(string text)
-    {
-        commandPrefix.text = "Attacks with a " + text;
-        StartCoroutine(ChangeWordToChar(text));
-        StartCoroutine(SendCharsAt(enemies[0]));
-    }
-
-    private IEnumerator SendCharsAt(Character character)
-    {
-        yield return new WaitForSeconds(1f);
-
-        Vector3 wantedPos = character.transform.position;
-
-        for (int i = 0; i < loseChars.Count; i++)
+        List<string> names = new List<string>();
+        for (int i = 0; i < enemies.Count; i++)
         {
-            loseChars[i].LerpRectTransform(wantedPos, 2f, character);
-            yield return new WaitForSeconds(0.1f);
+            names.Add(enemies[i].name);
         }
+
+        return names.ToArray();
     }
+
+    public string[] GetItemNames()
+    {
+        return inventory.GetAllItems().ToArray();
+    }
+
 
     [EasyAttributes.Button]
-    public void TestFunction()
+    public void SpawnRoom()
     {
-        ChangeWordToChars("test");
+        SpawnPlayers();
+        SpawnEnemies();
     }
 
-    private IEnumerator ChangeWordToChar(string word)
+    private void SpawnPlayers()
     {
-        yield return new WaitForSeconds(0.5f);
-        loseChars = ChangeWordToChars(word);
-    }
-
-    private List<RectTransform> ChangeWordToChars(string word)
-    {
-        if (!commandPrefix.text.Contains(word))
+        players = new List<Character>();
+        for (int i = 0; i < amountOfPlayers; i++)
         {
-            Debug.LogError($"\"{word}\" not found in string!");
-            return null;
+            Character p = Instantiate(playerPrefab, playerSpawnPositions[i], Quaternion.identity);
+            players.Add(p);
         }
 
-        TMP_TextInfo textInfo = commandPrefix.textInfo;
-        Debug.Log("First 3 chars of text info are: " + textInfo.characterInfo[0].character + textInfo.characterInfo[1].character + textInfo.characterInfo[2].character);
-        List<RectTransform> charList = new List<RectTransform>();
+        SpawnHealthBar(players);
+    }
 
-        string commandText = commandPrefix.text;
-        int wordIndex = commandText.IndexOf(word);
-        int charCount = textInfo.characterCount;
+    private void SpawnEnemies()
+    {
+        Character e = Instantiate(enemyPrefab, enemySpawnPositions[0], Quaternion.identity);
+        enemies.Add(e);
 
-        Debug.Log($"cText: {commandText}, wIndex: {wordIndex}, cCount: {charCount}");
+        SpawnHealthBar(enemies);
+    }
 
-        //The Y of the first letter, making sure every letter is on the right height
-        TMP_CharacterInfo tempCInfo = textInfo.characterInfo[0];
-        float firstY = VectorExtensions.Center(commandPrefix.transform.TransformPoint(tempCInfo.topRight), commandPrefix.transform.TransformPoint(tempCInfo.bottomLeft)).y;
-
-        for (int i = wordIndex; i < charCount; i++)
+    private void SpawnHealthBar(List<Character> characters)
+    {
+        for (int i = 0; i < characters.Count; i++)
         {
-            TMP_CharacterInfo cInfo = textInfo.characterInfo[i];
+            Debug.Log(characters[i].name);
+            HealthBar hp = Instantiate(healthBarPrefab, characters[i].transform.position + Vector3Int.up, Quaternion.identity);
+            hp.AssignCharacter(characters[i]);
 
-            if (!cInfo.isVisible) continue;
-
-            //Gets the center of the letter
-            Vector3 bottomLeft = commandPrefix.transform.TransformPoint(cInfo.bottomLeft);
-            Vector3 topRight = commandPrefix.transform.TransformPoint(cInfo.topRight);
-            Vector3 center = VectorExtensions.Center(topRight, bottomLeft);
-            center.y = firstY;
-
-            //Spawn the characters
-            TextMeshProUGUI obj = Instantiate(charPrefab, center, Quaternion.identity);
-            string c = cInfo.character.ToString();
-            obj.name = c;
-            obj.text = c;
-            obj.transform.parent = commandPrefix.transform;
-            obj.transform.localScale = Vector3.one;
-
-            charList.Add((RectTransform)obj.transform);
+            hp.transform.SetParent(canvas, false);
         }
-
-        commandPrefix.text = commandText.Remove(wordIndex);
-
-        return charList;
-    }
-
-    public void MenuCommand(string text)
-    {
-
-    }
-
-    private void InitializeCommands()
-    {
-        commands = new Dictionary<string, StringCommand>()
-        {
-            {"Use", UseCommand},
-            {"Attack", AttackCommand},
-            {"Menu", MenuCommand},
-        };
     }
 }

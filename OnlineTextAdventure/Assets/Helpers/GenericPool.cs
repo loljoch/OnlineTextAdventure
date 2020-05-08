@@ -6,10 +6,11 @@ namespace Extensions.Generics.ItemPool
     /// <summary>
     /// Please save me as IItemPool
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">Class</typeparam>
     public class GenericPool<T> : IItemPool<T> where T : MonoBehaviour
     {
         private readonly T prefab;
+        private readonly Transform parent;
         private List<T> poolList;
 
         /// <summary>
@@ -21,7 +22,21 @@ namespace Extensions.Generics.ItemPool
             this.prefab = prefab;
 
             poolList = new List<T>();
-            poolList.Add(prefab);
+            poolList.Add(CreateNew());
+        }
+
+        /// <summary>
+        /// GenericPool constructor
+        /// </summary>
+        /// <param name="prefab">Object of the item this pool will pool</param>
+        /// <param name="parent">Parent of the objects</param>
+        public GenericPool(T prefab, Transform parent)
+        {
+            this.prefab = prefab;
+            this.parent = parent;
+
+            poolList = new List<T>();
+            poolList.Add(CreateNew());
         }
 
         /// <summary>
@@ -32,9 +47,9 @@ namespace Extensions.Generics.ItemPool
         {
             for (int i = 0; i < poolList.Count; i++)
             {
-                if (!poolList[i].enabled)
+                if (!poolList[i].gameObject.activeInHierarchy)
                 {
-                    poolList[i].enabled = true;
+                    poolList[i].gameObject.SetActive(true);
                     return poolList[i];
                 }
             }
@@ -42,15 +57,33 @@ namespace Extensions.Generics.ItemPool
             return CreateNew();
         }
 
+        public List<T> GetActiveItems()
+        {
+            List<T> activeList = new List<T>();
+
+            for (int i = 0; i < poolList.Count; i++)
+            {
+                if (!poolList[i].gameObject.activeInHierarchy) continue;
+
+                activeList.Add(poolList[i]);
+            }
+
+            return activeList;
+        }
+
         private T CreateNew()
         {
-            T obj = Object.Instantiate(prefab);
-            obj.enabled = false;
+            T obj = (parent == null)? Object.Instantiate(prefab) : Object.Instantiate(prefab, parent);
+            obj.gameObject.SetActive(false);
             poolList.Add(obj);
             return obj;
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T">Class</typeparam>
     public interface IItemPool<T>
     {
         /// <summary>
@@ -58,5 +91,11 @@ namespace Extensions.Generics.ItemPool
         /// </summary>
         /// <returns>Item that has been pooled</returns>
         T Get();
+
+        /// <summary>
+        /// Gets you all active items
+        /// </summary>
+        /// <returns>List of active items</returns>
+        List<T> GetActiveItems();
     }
 }

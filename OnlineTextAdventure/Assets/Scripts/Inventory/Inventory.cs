@@ -9,16 +9,13 @@ namespace Game.Inventory
         public List<InventoryItem> items;
         public InventorySlot prefab;
 
-        public List<InventoryItem> GetAllItems(Options options)
+        public List<string> GetAllItems()
         {
-            List<InventoryItem> gItems = new List<InventoryItem>();
+            List<string> gItems = new List<string>();
 
             for (int i = 0; i < items.Count; i++)
             {
-                if (items[i].options == options)
-                {
-                    gItems.Add(items[i]);
-                }
+                gItems.Add(items[i].name);
             }
 
             return gItems;

@@ -3,16 +3,16 @@
 namespace Game.Inventory
 {
     [System.Flags]
-    public enum Options
+    public enum TargetableOn
     {
-        Usable = (1 << 0),
-        Attackable = (1 << 1)
+        Allies = (1 << 0),
+        Enemies = (1 << 1)
     }
 
     [System.Serializable]
     public class InventoryItem
     {
-        public Options options;
+        public TargetableOn options;
         public string name;
         public Sprite sprite;
     }

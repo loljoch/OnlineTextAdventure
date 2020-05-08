@@ -49,5 +49,23 @@ namespace Extensions
                 return null;
             }
         }
+
+        /// <summary>
+        /// Destroys all children of object
+        /// </summary>
+        /// <param name="obj">Object</param>
+        public static void DestroyChildren(this Transform obj)
+        {
+            Transform[] children = obj.GetComponentsInChildren<Transform>();
+            int cLength = children.Length;
+
+            for (int i = 0; i < cLength; i++)
+            {
+                if (children[i] != obj)
+                {
+                    Object.Destroy(children[i].gameObject);
+                }
+            }
+        }
     }
 }
